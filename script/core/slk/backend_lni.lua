@@ -1,5 +1,6 @@
 local lang = require 'lang'
 local convertreal = require 'convertreal'
+local reference = require 'slk.lni_reference'
 local table_insert = table.insert
 local table_sort = table.sort
 local math_type = math.type
@@ -13,6 +14,7 @@ local metadata
 local remove_unuse_object
 local ttype
 local str
+local references
 
 local function get_len(tbl)
     local n = 0
@@ -24,7 +26,7 @@ local function get_len(tbl)
     return n
 end
 
-local function format_value(tp, value)
+local function format_value(tp, value, is_reference)
     if value == nil then
         return 'nil'
     end
@@ -33,6 +35,12 @@ local function format_value(tp, value)
     elseif tp == 1 or tp == 2 then
         return convertreal(value)
     elseif tp == 3 then
+        if is_reference then
+            -- The pinned parser accepts decimal and newline escapes. A quoted
+            -- reference preserves control bytes and cannot collide with a long
+            -- string delimiter when the assignment is later uncommented.
+            return ('%q'):format(value):gsub('\n', 'n')
+        end
         value = w2l:get_editstring(value)
         if value:match '[\n\r]' then
             return ('[=[\r\n%s]=]'):format(value)
@@ -47,7 +55,7 @@ local function write(format, ...)
     str[#str+1] = format:format(...)
 end
 
-local function write_data(meta, data, lines)
+local function write_data(meta, data, lines, is_reference)
     local len
     local key = meta.field
     if type(data) == 'table' then
@@ -60,15 +68,16 @@ local function write_data(meta, data, lines)
         key = ('%q'):format(key)
     end
     if meta.displayname then
-        local comment = w2l:get_editstring(meta.displayname)
-        lines[#lines+1] = {'-- %s', comment:gsub('^%s*(.-)%s*$', '%1')}
+        local comment = is_reference and reference.label(w2l, meta.displayname)
+            or w2l:get_editstring(meta.displayname)
+        lines[#lines+1] = {is_reference and '%s' or '-- %s', comment:gsub('^%s*(.-)%s*$', '%1')}
     end
     if not len then
-        lines[#lines+1] = {'%s = %s', key, format_value(meta.type, data)}
+        lines[#lines+1] = {'%s = %s', key, format_value(meta.type, data, is_reference)}
         return
     end
     if len <= 1 then
-        lines[#lines+1] = {'%s = %s', key, format_value(meta.type, data[1])}
+        lines[#lines+1] = {'%s = %s', key, format_value(meta.type, data[1], is_reference)}
         return
     end
 
@@ -76,9 +85,9 @@ local function write_data(meta, data, lines)
     local is_string = meta.type == 3
     for i = 1, len do
         if len >= 10 then
-            values[i] = ('%d = %s'):format(i, format_value(meta.type, data[i]))
+            values[i] = ('%d = %s'):format(i, format_value(meta.type, data[i], is_reference))
         else
-            values[i] = format_value(meta.type, data[i])
+            values[i] = format_value(meta.type, data[i], is_reference)
         end
     end
 
@@ -111,6 +120,68 @@ local function format_internal(value)
         return tostring(value)
     end
     error('Invalid preserved object format data.')
+end
+
+local function same_value(a, b)
+    if type(a) ~= type(b) then
+        return false
+    end
+    if type(a) ~= 'table' then
+        return a == b
+    end
+    for key, value in pairs(a) do
+        if value ~= b[key] then
+            return false
+        end
+    end
+    for key in pairs(b) do
+        if a[key] == nil then
+            return false
+        end
+    end
+    return true
+end
+
+local function write_references(id, obj)
+    if not w2l.setting.show_inherited_fields or w2l.setting.mode ~= 'lni' then
+        return
+    end
+    local effective = references and references[id] or {}
+    local metas, keys = {}, {}
+    local function collect(source)
+        for key, meta in pairs(source or {}) do
+            if not keys[key] and reference.is_field(key, meta) then
+                keys[key] = true
+                metas[#metas+1] = {key = key, meta = meta}
+            end
+        end
+    end
+    collect(metadata[obj._code])
+    collect(metadata[ttype])
+    table_sort(metas, function(a, b) return a.meta.field < b.meta.field end)
+    write('%s', reference.header(w2l, obj._parent))
+    for _, item in ipairs(metas) do
+        local key, meta = item.key, item.meta
+        local active, value = obj[key], effective[key]
+        local inherited = active == nil
+        local partial = type(active) == 'table' and value ~= nil and not same_value(active, value)
+        if inherited or partial then
+            local lines = {}
+            -- Missing or unusable values get explicitly marked, inactive edit
+            -- templates. They never become inherited defaults or active overrides.
+            local ok = value ~= nil and pcall(write_data, meta, value, lines, true)
+            if ok and #lines > 0 then
+                if partial then
+                    write('%s', reference.comment(lang.script.LNI_REFERENCE_ARRAY))
+                end
+                for _, line in ipairs(lines) do
+                    write('%s', reference.comment(line[1]:format(table.unpack(line, 2))))
+                end
+            else
+                write('%s', reference.placeholder(w2l, meta))
+            end
+        end
+    end
 end
 
 local function write_obj(id, obj)
@@ -169,6 +240,8 @@ local function write_obj(id, obj)
     for i = 1, #lines do
         write(table.unpack(lines[i]))
     end
+    -- Decide section eligibility from active data above, before adding references.
+    write_references(id, obj)
     write ''
 end
 
@@ -202,7 +275,7 @@ local function write_table(slk)
     end
 end
 
-return function (w2l_, type, slk)
+return function (w2l_, type, slk, references_)
     if not slk then
         return
     end
@@ -210,6 +283,7 @@ return function (w2l_, type, slk)
     metadata = w2l:metadata()
     remove_unuse_object = w2l.setting.remove_unuse_object
     ttype = type
+    references = references_
     str = {}
     write_table(slk)
     return #str > 0 and table_concat(str, '\r\n')

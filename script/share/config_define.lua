@@ -247,10 +247,11 @@ local define = {
         data_load           = {string},
     },
     lni = {
-        'read_slk', 'find_id_times', 'export_lua', 'extra_check',
+        'read_slk', 'find_id_times', 'export_lua', 'show_inherited_fields', 'extra_check',
         read_slk            = {boolean,   raw.CONFIG_LNI_READ_SLK},
         find_id_times       = {integer,   raw.CONFIG_LNI_FIND_ID_TIMES},
         export_lua          = {boolean,   raw.CONFIG_LNI_EXPORT_LUA},
+        show_inherited_fields = {boolean, raw.CONFIG_LNI_SHOW_INHERITED_FIELDS},
         extra_check         = {boolean,   raw.CONFIG_LNI_EXTRA_CHECK},
     },
     slk = {

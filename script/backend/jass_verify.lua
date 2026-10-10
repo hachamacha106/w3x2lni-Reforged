@@ -247,6 +247,30 @@ function M.verify(w2l, provider, phase, options)
     return result
 end
 
+local function report_diagnostics(emit, title, label, result)
+    -- Parsed rows are already present in the untouched raw block. Sending each
+    -- row again can flood the GUI worker queue for maps with many pjass errors.
+    local raw_lines = {}
+    for line in result.raw_output:gmatch('[^\r\n]+') do raw_lines[line] = true end
+    local included, notes = 0, {}
+    for _, text in ipairs(result.diagnostics) do
+        if raw_lines[text] then
+            included = included + 1
+        else
+            -- Preserve all synthesized diagnostics, including repeated notes.
+            notes[#notes + 1] = text
+        end
+    end
+    if included > 0 or #notes > 0 then
+        emit(title, 8, label .. ': diagnostics',
+            ('%d diagnostic row(s) are included verbatim in the raw output; %d additional note(s) follow.'):format(
+                included, #notes))
+    end
+    if #notes > 0 then
+        emit(title, 8, label .. ': additional diagnostics', table.concat(notes, '\n'))
+    end
+end
+
 function M.report(w2l, result)
     local emit = w2l.messager.report
     local title = 'JASS verification (pjass)'
@@ -254,12 +278,12 @@ function M.report(w2l, result)
         ('Report only; conversion result is unaffected. Dataset: %s; script: %s'):format(
             tostring(result.dataset), result.script_path or 'none'))
     if result.checker_version then emit(title, 8, result.checker_version, '') end
-    for _, text in ipairs(result.diagnostics) do emit(title, 8, text, '') end
+    report_diagnostics(emit, title, 'Target dataset', result)
     if result.raw_output ~= '' then emit(title, 8, 'Target dataset: pjass raw output', result.raw_output) end
     if result.map_declarations then
         local map = result.map_declarations
         emit(title, 8, 'Map declarations: ' .. map.status, map.raw_output)
-        for _, text in ipairs(map.diagnostics) do emit(title, 8, text, '') end
+        report_diagnostics(emit, title, 'Map declarations', map)
     end
 end
 

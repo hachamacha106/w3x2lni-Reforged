@@ -111,6 +111,83 @@ result = check()
 assert(result.status == 'Passed' and result.map_declarations.status == 'Skipped')
 files['common.j'], files['scripts\\common.j'] = nil, nil
 
+-- A noisy checker must preserve every raw byte without one worker message per
+-- diagnostic. Repeated raw rows and synthesized notes remain visible in full.
+local function report_events(value)
+    events = {}
+    checker.report(w2l, value)
+    for _, event in ipairs(events) do
+        assert(event.level == 8 and type(event.details) == 'string', 'Coalescing must remain report-only')
+    end
+    return events
+end
+local function report_event(name)
+    local found
+    for _, event in ipairs(events) do
+        if event.text == name then
+            assert(not found, 'A component raw output or supplemental block must be emitted only once')
+            found = event
+        end
+    end
+    return assert(found, 'Missing checker report event: ' .. name)
+end
+local function noisy_output(prefix, count, ignored)
+    local rows = {}
+    for i = 1, count do
+        rows[i] = ('war3map.j:%d: %s undeclared function'):format(i % 37, prefix)
+    end
+    -- Preserve mixed line endings, blank lines and duplicate diagnostic rows.
+    return table.concat(rows, '\r\n') .. '\n\n' .. ignored .. ' errors ignored\nParse failed: errors\r\n'
+end
+local target_raw, map_raw = noisy_output('Target', 5000, 2), noisy_output('Bundled', 3000, 1)
+files['common.j'] = 'map replacement common.j'
+run_count = 0
+result = check {run = function()
+    run_count = run_count + 1
+    return {exit_code = 1, raw_output = run_count == 1 and target_raw or map_raw}
+end}
+assert(result.status == 'Failed' and result.map_declarations.status == 'Failed')
+assert(#result.diagnostics == 5002 and #result.map_declarations.diagnostics == 3001)
+local target_notes = table.concat({result.diagnostics[5001], result.diagnostics[5002]}, '\n')
+local map_notes = result.map_declarations.diagnostics[3001]
+report_events(result)
+assert(#events == 7, 'Thousands of diagnostic rows must use a bounded number of worker messages')
+assert(report_event('Input: Failed'))
+assert(report_event('Target dataset: pjass raw output').details == target_raw,
+    'Target raw bytes, duplicates and line endings must remain unchanged')
+assert(report_event('Map declarations: Failed').details == map_raw,
+    'Map declarations must keep their own complete, separate raw output')
+assert(report_event('Target dataset: diagnostics').details:find('5000 diagnostic row(s)', 1, true))
+assert(report_event('Map declarations: diagnostics').details:find('3000 diagnostic row(s)', 1, true))
+assert(report_event('Target dataset: additional diagnostics').details == target_notes)
+assert(report_event('Map declarations: additional diagnostics').details == map_notes)
+assert(result.raw_output == target_raw and #result.diagnostics == 5002 and result.status == 'Failed',
+    'Reporting must not modify the checker result or clear a failed status')
+files['common.j'] = nil
+
+local missing_raw_notes = {}
+for i = 1, 2000 do missing_raw_notes[i] = 'Missing raw diagnostic ' .. i end
+missing_raw_notes[#missing_raw_notes + 1] = missing_raw_notes[1]
+result = check {run = function() return {exit_code = 1, diagnostics = missing_raw_notes} end}
+assert(result.status == 'Failed' and result.raw_output == '')
+report_events(result)
+assert(#events == 3, 'Diagnostics without raw output must also use bounded worker messages')
+assert(report_event('Target dataset: diagnostics').details:find('0 diagnostic row(s)', 1, true))
+assert(report_event('Target dataset: additional diagnostics').details == table.concat(missing_raw_notes, '\n'),
+    'Missing raw output must not hide any diagnostics or repeated synthesized notes')
+
+local timeout_note = 'pjass timed out; the map conversion is unaffected.'
+local timeout_raw = 'war3map.j:2: Target undeclared function\r\npartial checker output\n'
+result = check {run = function()
+    return {status = 'Unavailable', diagnostics = {timeout_note}, raw_output = timeout_raw}
+end}
+report_events(result)
+assert(result.status == 'Unavailable' and #events == 4)
+assert(report_event('Target dataset: additional diagnostics').details == timeout_note)
+assert(report_event('Target dataset: pjass raw output').details == timeout_raw)
+assert(files['war3map.j'] == original)
+print('PASS bounded pjass reports preserve complete target/map raw output and all synthesized diagnostics')
+
 local archive = {get = function(_, name)
     if name == '.w3x' then return 'LNI marker' end
     if name == 'map\\war3map.j' then return original end
@@ -298,6 +375,7 @@ local conversion_ok, conversion_error = xpcall(function()
     local input_files = {['war3map.j'] = original, ['(listfile)'] = 'war3map.j\n'}
     local final_bytes = 'function main takes nothing returns nothing\n    call MissingAfterWTS("Expanded text")\nendfunction\n'
     local output_files, phases, exits, conversion_events = {}, {}, {}, {}
+    local last_progress_text
     local function ar(data)
         return {get = function(_, name) return data[name] end, get_type = function() return 'mpq' end,
             number_of_files = function() return 1 end, close = function() end}
@@ -315,7 +393,8 @@ local conversion_ok, conversion_error = xpcall(function()
     function fake:save() output_files['war3map.j'] = final_bytes end
     function fake:failed(err) error(err) end
     local logger = {}
-    for _, name in ipairs {'text', 'title', 'progress'} do logger[name] = function() end end
+    for _, name in ipairs {'title', 'progress'} do logger[name] = function() end end
+    function logger.text(text) last_progress_text = text end
     function logger.report(_, level, text, detail)
         conversion_events[#conversion_events + 1] = {level = level, text = text, detail = detail}
     end
@@ -337,6 +416,9 @@ local conversion_ok, conversion_error = xpcall(function()
         save = function() saved_output = true end,
     }
     package.loaded['backend.jass_verify'] = {check = function(c, a, phase, options)
+        local progress_text = phase == 'Before conversion' and lang.script.CHECK_JASS_INPUT or lang.script.CHECK_JASS_OUTPUT
+        assert(type(progress_text) == 'string' and last_progress_text == progress_text,
+            'Each checker invocation must immediately follow its localized input/output progress label')
         options = options or {}
         options.run = function(sources)
             local script = sources['war3map.j']

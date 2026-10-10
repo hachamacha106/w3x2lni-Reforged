@@ -284,6 +284,13 @@ local function lni()
                 }
             },
             checkbox {
+                text = lang.ui.SHOW_INHERITED_FIELDS,
+                tip = lang.ui.SHOW_INHERITED_FIELDS_HINT,
+                bind = {
+                    value = 'config.lni.show_inherited_fields'
+                }
+            },
+            checkbox {
                 text = lang.ui.EXTRA_CHECK,
                 tip = lang.ui.EXTRA_CHECK_HINT,
                 bind = {

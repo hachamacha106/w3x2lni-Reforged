@@ -828,7 +828,7 @@ for _, locale in ipairs {'enUS', 'zhCN'} do
         return worker
     end
     local configuration = {
-        lni = {read_slk = true, export_lua = false, extra_check = false},
+        lni = {read_slk = true, export_lua = false, extra_check = false, show_inherited_fields = false},
         obj = {read_slk = true, extra_check = false},
         slk = {remove_unuse_object = true, optimize_jass = false, mdx_squf = false,
             remove_we_only = true, slk_doodad = false, confused = false, extra_check = false},
@@ -881,7 +881,7 @@ for _, locale in ipairs {'enUS', 'zhCN'} do
     assert(loadfile(root .. '/script/gui/new/page/select.lua', 't', environment))()
     local select_template = captured[2]
     local expected_bindings = {
-        lni = {'config.lni.read_slk', 'config.lni.export_lua', 'config.lni.extra_check'},
+        lni = {'config.lni.read_slk', 'config.lni.export_lua', 'config.lni.extra_check', 'config.lni.show_inherited_fields'},
         obj = {'config.obj.read_slk', 'config.obj.extra_check'},
         slk = {'config.slk.remove_unuse_object', 'config.slk.optimize_jass', 'config.slk.mdx_squf',
             'config.slk.remove_we_only', 'config.slk.slk_doodad', 'config.slk.confused', 'config.slk.extra_check'},

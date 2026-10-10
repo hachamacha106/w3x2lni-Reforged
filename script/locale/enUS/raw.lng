@@ -145,6 +145,8 @@ When converting to Lni, convert imported slk files. Should be boolean.
 When converting to Lni, limit times to search the optimal template, 0 means unlimited. Should be integer.
 [CONFIG_LNI_EXPORT_LUA]
 When converting to Lni, export lua files. Should be boolean.
+[CONFIG_LNI_SHOW_INHERITED_FIELDS]
+When converting to LNI, show inherited editable fields as comments. Default: false. Uncomment a field to override it; full references for partially overridden arrays remain comments.
 [CONFIG_LNI_EXTRA_CHECK]
 When converting to Lni, check the rationality of data.
 [CONFIG_SLK_REMOVE_UNUSE_OBJECT]

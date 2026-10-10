@@ -123,6 +123,7 @@ return function (mode)
     end)
 
     -- Check input before plugins, optimization and WTS substitutions.
+    messager.text(lang.script.CHECK_JASS_INPUT)
     jass_verify.check(w2l, input_ar, 'Before conversion')
 
     messager.text(lang.script.CHECK_PLUGIN)
@@ -162,6 +163,7 @@ return function (mode)
         saved_ar, reopen_error = builder.load(output)
         assert(saved_ar, reopen_error)
         local map = slk.w3i and slk.w3i[lang.w3i.MAP]
+        messager.text(lang.script.CHECK_JASS_OUTPUT)
         jass_verify.check(w2l, saved_ar, 'After conversion', {
             script_type = map and map[lang.w3i.SCRIPT_TYPE],
         })

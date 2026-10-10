@@ -1,7 +1,7 @@
 # W3x2lni Reforged
 
-**Latest release: [1.1.5](https://github.com/hachamacha106/w3x2lni-reforged/releases/tag/v1.1.5).**
-See the [release notes](docs/releases/1.1.5.md) for changes and compatibility details.
+**Latest release: [1.2.0](https://github.com/hachamacha106/w3x2lni-reforged/releases/tag/v1.2.0).**
+See the [release notes](docs/releases/1.2.0.md) for changes and compatibility details.
 
 **A community fork of [sumneko/w3x2lni](https://github.com/sumneko/w3x2lni), updated for modern Warcraft III map development and distribution.**
 
@@ -28,8 +28,8 @@ editor-only information, which cannot be restored by converting the result back.
 
 ## Download and run
 
-1. Open the [1.1.5 release](https://github.com/hachamacha106/w3x2lni-reforged/releases/tag/v1.1.5)
-   and download **`w3x2lni-reforged-1.1.5-windows-x86.zip`** from **Assets**.
+1. Open the [1.2.0 release](https://github.com/hachamacha106/w3x2lni-reforged/releases/tag/v1.2.0)
+   and download **`w3x2lni-reforged-1.2.0-windows-x86.zip`** from **Assets**.
 2. Extract the entire ZIP into a new folder. Keep `bin`, `script`, and `data`
    alongside the executables.
 3. Open **`w3x2lni.exe`**, drag in a `.w3x` / `.w3m` map or LNI project, and choose
@@ -43,6 +43,24 @@ This is a portable Windows application with an x86 runtime. The release package
 includes its selected `warcraft-current` dataset; no separate data import is
 needed to start using that dataset. GitHub's automatically generated **Source
 code** downloads are for development and do not include the packaged runtime.
+
+### LNI field references
+
+**To LNI → Advanced → Show inherited fields as comments** adds commented
+reference values to exported object `.ini` files.
+The option is off by default. Existing overrides stay active; untouched stock
+objects are not added. Leaving the comments unchanged preserves inheritance
+from the parent and selected game dataset. Fields without an available effective
+value include their editor label and a commented edit template marked
+`(no default)`: integer `0`, real `0.0`, or string `""`. Warcraft boolean object
+fields use integer `0`/`1`, so their template is `0`. These placeholders are not
+actual inherited defaults; leaving them commented preserves the map's data.
+
+To override an inherited field, remove `--` from its value line (and every
+line of a multiline value) and edit it. For a partially overridden array, the
+full reference is for reading only: edit the existing active array instead of
+uncommenting another definition. Reference values are a snapshot from export;
+re-export after changing the dataset to refresh them.
 
 ### Command line
 
@@ -62,17 +80,25 @@ conversion command. `w2l.exe config` shows the active settings; for example,
 `w2l.exe config slk.confused=true` enables JASS obfuscation when JASS optimization
 is enabled. `w2l.exe log` displays the last conversion report.
 
-## What's new in 1.1.5
+## What's new in 1.2.0
+
+- **Inherited LNI field references:** an optional advanced setting shows editable
+  fields as comments with readable labels, leaving existing overrides and
+  inheritance unchanged.
+- **Clear missing values:** typed commented templates marked `(no default)` help
+  you edit fields without presenting a guessed value as an inherited default.
+- **Clearer script-check progress and reports:** input/output pjass stages are
+  visible, and large diagnostic reports retain full details with fewer UI updates.
+- **Regression coverage:** compare active values and rebuilt object data with
+  comments off/on against current and legacy Warcraft data.
+
+### Included from earlier releases
 
 - **Safer Confuse scripts:** avoid duplicate globals, preserve dynamically
   dispatched callbacks, and reset optimizer state between conversions. Names
   used by dynamic callbacks are kept when they cannot safely be renamed.
 - **Clearer ID warnings:** distinguish SLK/TXT storage collisions from rawcode
   identity; affected objects retain exact IDs and the existing binary fallback.
-- **Regression coverage:** check callback routing and validate original and
-  transformed JASS with real pjass against current and legacy declarations.
-
-### Included from 1.1
 
 - **Readable conversion interface:** a high-contrast dark theme, clearer format
   selection, native checkboxes, Space/Enter activation, and **Change format**
@@ -132,6 +158,7 @@ It covers branching, CI checks, pinned submodules, version updates, and draft re
 
 - [Current Warcraft III support and game-data setup](docs/en-us/current-warcraft.md)
 - [W3I field names and values](docs/en-us/w3i-fields.md)
+- [W3x2lni Reforged 1.2.0 release notes](docs/releases/1.2.0.md)
 - [W3x2lni Reforged 1.1.5 release notes](docs/releases/1.1.5.md)
 - [W3x2lni Reforged 1.0 release notes](docs/releases/1.0.0.md)
 - [Developer setup and release process](docs/en-us/reforged-release.md)

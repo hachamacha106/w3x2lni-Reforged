@@ -64,6 +64,10 @@ Sometimes the search is slow
 Confuse scripts
 [CONFUSION_HINT]
 Rename variables and functions
+[SHOW_INHERITED_FIELDS]
+Show inherited fields as comments
+[SHOW_INHERITED_FIELDS_HINT]
+Show inherited values in exported object INI files without overriding them. Uncomment a field to edit it.
 [EXTRA_CHECK]
 Extra check
 [EXTRA_CHECK_HINT]

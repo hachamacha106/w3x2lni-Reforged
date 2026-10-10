@@ -1,5 +1,13 @@
 return {
 {
+    version = '1.2.0',
+    { 'NEW', 'Show inherited fields as comments in To LNI advanced settings, off by default' },
+    { 'UI', 'Label missing LNI field values with typed commented templates marked (no default)' },
+    { 'FIX', 'Handle malformed field metadata safely when exporting inherited references' },
+    { 'UI', 'Show pjass checking progress and group large diagnostics without losing report details' },
+    { 'CHG', 'Add inherited-field and report regression checks with legacy/current round trips' },
+},
+{
     version = '1.1.5',
     { 'FIX', 'Prevent duplicate globals and preserve dynamic callbacks with Confuse scripts enabled' },
     { 'FIX', 'Reset script optimizer state between conversions and validate custom obfuscation alphabets' },
