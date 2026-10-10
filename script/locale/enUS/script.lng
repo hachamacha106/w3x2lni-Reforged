@@ -2,6 +2,10 @@
 Initializing...
 [OPEN_MAP]
 Opening map...
+[CHECK_JASS_INPUT]
+Checking input script (pjass)...
+[CHECK_JASS_OUTPUT]
+Checking output script (pjass)...
 [CHECK_PLUGIN]
 Cheking plugin...
 [LOAD_FILE]
@@ -156,3 +160,11 @@ Data version of %s.%s not matched
 No Lni dir
 [NEED_LIST_FILE]
 Need complete `(listfile)`
+[LNI_REFERENCE_HEADER]
+Reference values: dataset %s (%s), parent %s. Comments do not override inherited values.
+[LNI_REFERENCE_ARRAY]
+Effective array for reference only; edit the active assignment above.
+[LNI_VALUE_UNAVAILABLE]
+%s (no default)
+[LNI_NO_DEFAULT]
+(no default)

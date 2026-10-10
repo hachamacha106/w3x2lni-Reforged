@@ -1,11 +1,13 @@
 local pairs = pairs
 local wtonumber = require 'w3xparser'.tonumber
+local reference = require 'slk.lni_reference'
 
 local keydata
 local is_remove_same
 local w2l
 local default
 local metadata
+local references
 
 local function sortpairs(t)
     local sort = {}
@@ -229,13 +231,82 @@ local function clean_obj(obj, ttype, default)
     end
 end
 
+-- Keep only editable field values, independent of arrays that cleanup may
+-- replace or modify while restoring skin precedence. Capture one object at a
+-- time so unchanged stock objects do not retain a second expanded dataset.
+local function copy_value(value)
+    if type(value) ~= 'table' then
+        return value
+    end
+    local result = {}
+    for key, item in pairs(value) do
+        result[key] = copy_value(item)
+    end
+    return result
+end
+
+local function capture_reference(obj, ttype)
+    if not references then
+        return
+    end
+    local values = {}
+    local function capture(metas)
+        for key, meta in pairs(metas or {}) do
+            if reference.is_field(key, meta) and obj[key] ~= nil then
+                values[key] = copy_value(obj[key])
+            end
+        end
+    end
+    capture(metadata[ttype])
+    capture(metadata[obj._code])
+    return values
+end
+
+local function has_editable_value(value)
+    if not value then
+        return false
+    end
+    if type(value) ~= 'table' then
+        return true
+    end
+    for key in pairs(value) do
+        if type(key) == 'number' and key > 0 then
+            return true
+        end
+    end
+    return false
+end
+
+local function keep_reference(ttype, id, obj, values)
+    if not values then
+        return
+    end
+    local enabled = id ~= obj._parent or obj._object_version == 3
+        or obj._skin_version or obj._object_extras or obj._skin_extras
+    local function check(metas)
+        for key, meta in pairs(metas or {}) do
+            if reference.is_field(key, meta) then
+                enabled = enabled or has_editable_value(obj[key])
+            end
+        end
+    end
+    check(metadata[ttype])
+    check(metadata[obj._code])
+    if enabled then
+        references[ttype] = references[ttype] or {}
+        references[ttype][id] = values
+    end
+end
+
 local function clean_objs(type, t, check_keep)
     if not t then
         return
     end
     for id, obj in sortpairs(t) do
         if not check_keep or obj._keep_obj then
+            local values = capture_reference(obj, type)
             clean_obj(obj, type, default[type])
+            keep_reference(type, id, obj, values)
         end
     end
 end
@@ -245,10 +316,27 @@ local function clean_txt(type, t)
         return
     end
     for id, obj in sortpairs(t) do
+        local values = references and {}
+        if values then
+            for key, value in pairs(obj) do
+                if key:sub(1, 1) ~= '_' then
+                    values[key] = copy_value(value)
+                end
+            end
+        end
         local default = default[type][id]
         if default then
             for key, data in pairs(obj) do
                 remove_same_as_txt(nil, key, data, default, obj, type)
+            end
+        end
+        if values then
+            for key, value in pairs(obj) do
+                if key:sub(1, 1) ~= '_' and has_editable_value(value) then
+                    references[type] = references[type] or {}
+                    references[type][id] = values
+                    break
+                end
             end
         end
     end
@@ -260,7 +348,9 @@ local function clean_misc(type, t)
     end
     for name in pairs(default[type]) do
         if t[name] and (t[name]._source ~= 'slk' or w2l.setting.mode ~= 'slk') then
+            local values = capture_reference(t[name], type)
             clean_obj(t[name], type, default[type])
+            keep_reference(type, name, t[name], values)
         end
     end
 end
@@ -281,6 +371,15 @@ local function clean_txt_keys(slk)
                     end
                 end
             end
+            local values = references and references.txt and references.txt[id:lower()]
+            if values then
+                -- These fields are represented in the object INI, not txt.ini.
+                for k in pairs(values) do
+                    if removeKeys[k] then
+                        values[k] = nil
+                    end
+                end
+            end
         end
     end
 end
@@ -291,6 +390,7 @@ return function (w2l_, slk)
     default = w2l:get_default()
     is_remove_same = w2l.setting.remove_same
     metadata = w2l:metadata()
+    references = w2l.setting.mode == 'lni' and w2l.setting.show_inherited_fields and {} or nil
     if w2l.setting.mode == 'slk' then
         for i, type in ipairs {'ability', 'buff', 'unit', 'item', 'upgrade', 'doodad', 'destructable'} do
             clean_objs(type, slk[type], true)
@@ -310,4 +410,5 @@ return function (w2l_, slk)
     clean_txt_keys(slk)
 
     w2l.progress(1)
+    return references
 end

@@ -144,6 +144,8 @@
 输出目标是Lni时，限制搜索最优模板的次数，0表示无限。必须是整数。
 [CONFIG_LNI_EXPORT_LUA]
 输出目标是Lni时，导出地图内的lua文件。必须是布尔。
+[CONFIG_LNI_SHOW_INHERITED_FIELDS]
+转为 LNI 时，以注释显示可编辑的继承字段。默认为 false。取消注释即可覆盖字段；部分覆盖的数组的完整参考值仍为注释。
 [CONFIG_LNI_EXTRA_CHECK]
 输出目标是Lni时，检查地图数据的合理性。
 [CONFIG_SLK_REMOVE_UNUSE_OBJECT]

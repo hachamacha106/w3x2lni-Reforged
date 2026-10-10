@@ -3,6 +3,30 @@
 This file tracks **W3x2lni Reforged** releases. The original project's detailed
 history remains in [`script/share/changelog.lua`](script/share/changelog.lua).
 
+## 1.2.0 — 2026-10-11
+
+- Add **To LNI → Advanced → Show inherited fields as comments**, off by default.
+  Export readable reference values alongside existing active object overrides
+  without adding untouched stock objects or changing inheritance.
+- Include editor field labels and commented edit templates marked `(no default)`
+  when effective values are unavailable. Templates use integer `0`, real `0.0`,
+  or string `""`; Warcraft boolean object fields retain their numeric `0`/`1`
+  representation. These templates are not inherited defaults.
+- Preserve full effective arrays for reference while keeping active array
+  overrides separate. Partial-array references explain that the active assignment
+  should be edited instead of uncommenting a duplicate definition.
+- Handle malformed and scalar metadata safely, and retain unknown object data,
+  skin sidecars, zero/empty overrides and native profile fields during export.
+- Show input/output pjass checking stages and group large diagnostics to keep
+  reports responsive, while retaining the full checker output and visible failures.
+- Extend regression coverage for comment parsing, effective values, missing-field
+  templates, metadata, dataset changes and large checker reports.
+
+The maintainer reported that the inherited-field preview worked. This does not
+establish separate World Editor or gameplay acceptance for every map. pjass remains
+report-only, conversion defaults stay unchanged, and native dependency pins and
+retained upstream binaries are unchanged from 1.1.5.
+
 ## 1.1.5 — 2026-10-10
 
 - Prevent generated JASS identifiers from colliding with original functions,

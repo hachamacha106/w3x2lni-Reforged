@@ -2,6 +2,10 @@
 正在初始化...
 [OPEN_MAP]
 正在打开地图...
+[CHECK_JASS_INPUT]
+正在检查输入脚本（pjass）...
+[CHECK_JASS_OUTPUT]
+正在检查输出脚本（pjass）...
 [CHECK_PLUGIN]
 正在检查插件...
 [LOAD_FILE]
@@ -156,3 +160,11 @@ w3i里的文本长度超过1023字符
 没有找到所在的Lni目录
 [NEED_LIST_FILE]
 需要完整的(listfile)
+[LNI_REFERENCE_HEADER]
+参考值：数据集 %s（%s），父对象 %s。注释不会覆盖继承值。
+[LNI_REFERENCE_ARRAY]
+完整数组仅供参考；请编辑上方已生效的赋值。
+[LNI_VALUE_UNAVAILABLE]
+%s（无默认值）
+[LNI_NO_DEFAULT]
+（无默认值）

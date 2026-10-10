@@ -424,6 +424,7 @@ function mt:set_setting(setting)
     choose('target_storage')
     choose('computed_text', toboolean)
     choose('export_lua', toboolean)
+    choose('show_inherited_fields', toboolean)
 
     setting.version = setting.version or 'Custom'
     -- Callers also modify self.setting in place before applying it (for example

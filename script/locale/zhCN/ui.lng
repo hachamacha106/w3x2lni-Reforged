@@ -64,6 +64,10 @@
 混淆脚本
 [CONFUSION_HINT]
 重命名变量与函数
+[SHOW_INHERITED_FIELDS]
+以注释显示继承字段
+[SHOW_INHERITED_FIELDS_HINT]
+在导出的物体 INI 文件中显示继承值，但不覆盖它们。要编辑字段，请先取消注释。
 [EXTRA_CHECK]
 额外检查
 [EXTRA_CHECK_HINT]

@@ -21,21 +21,21 @@ local function save_object_files(w2l, type, data, wts)
     end
 end
 
-local function to_lni(w2l, slk)
+local function to_lni(w2l, slk, references)
     --转换物编
     local count = 0
     for ttype, filename in pairs(w2l.info.lni) do
         count = count + 1
         local data = slk[ttype]
         w2l.progress:start(count / 8)
-        local content = w2l:backend_lni(ttype, data)
+        local content = w2l:backend_lni(ttype, data, references and references[ttype])
         w2l.progress:finish()
         if content then
             w2l:file_save('table', ttype, content)
         end
     end
 
-    local content = w2l:backend_txtlni(slk['txt'])
+    local content = w2l:backend_txtlni(slk['txt'], references and references.txt)
     if content then
         w2l:file_save('table', 'txt', content)
     end
@@ -413,13 +413,13 @@ return function (w2l_, slk)
     end
 
     w2l.progress:start(0.5)
-    w2l:backend_cleanobj(slk)
+    local references = w2l:backend_cleanobj(slk)
     w2l.progress:finish()
 
     w2l.progress:start(0.7)
     w2l.messager.text(lang.script.CONVERT_OBJ)
     if w2l.setting.mode == 'lni' then
-        to_lni(w2l, slk)
+        to_lni(w2l, slk, references)
     elseif w2l.setting.mode == 'obj' then
         to_obj(w2l, slk)
     elseif w2l.setting.mode == 'slk' then
